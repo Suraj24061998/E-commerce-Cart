@@ -1,65 +1,67 @@
 const user = require('./customerschema')
-const addData = (req, res) => {
-    let data = user({
-        name: req.body.name,
-        email: req.body.email,
-        createpassword: req.body.createpassword,
-        number:req.body.number
+const bcrypt = require('bcrypt');
 
-    })
-    data.save().then(data => {
 
+
+const addData = async (req, res) => {
+    try {
+        const { name, email, createpassword, number } = req.body;
+        const hashedPassword = await bcrypt.hash(createpassword, 10);
+        const data = new user({
+            name: name,
+            email: email,
+            createpassword: hashedPassword, 
+            number: number,
+        });
+        await data.save();
         res.json({
             status: 200,
-            msg: "account created",
-            data: data
-        })
-        console.log("Data saved")
-    }).catch(err => {
-
+            msg: 'Account created',
+            data: data,
+        });
+        console.log('Data saved');
+    }  catch (err) {
+        console.error('Error creating account:', err);
         res.json({
             status: 500,
-            msg: "account not created"
-        })
+            msg: 'Account not created',
+        });
+    }
+};
 
-    })
-}
-
-const login = (req, res) => {
-    user.findOne({ createpassword: req.body.createpassword }).exec().then(data => {
-        // console.log(data);
+const login = async (req, res) => {
+    try {
+        const enteredPassword = req.body.createpassword;
+        const data = await user.findOne({ $or: [{ email: req.body.email }, { name: req.body.name }] }).exec(); 
         if (data) {
-            if (data.email == req.body.email || data.name == req.body.name) {
-
+            const passwordMatch = await bcrypt.compare(enteredPassword, data.createpassword);
+            console.log('Password Match:', passwordMatch);
+            if (passwordMatch) {
                 res.json({
                     status: 200,
-                    msg: "login sucessfully",
+                    msg: "Login successfully",
                     data: data
-                })
-            }
-            else {
+                });
+            } else {
                 res.json({
                     status: 500,
-                    msg: "password mismatch"
-
-
-                })
+                    msg: "Password mismatch"
+              });
             }
-        }
-        else {
+        } else {
             res.json({
                 status: 500,
-                msg: "data not exit"
-            })
+                msg: "User not found"
+            });
         }
-    }).catch(err => {
+    } catch (err) {
+        console.error('Error during login:', err);
         res.json({
             status: 500,
-            msg: "login faild"
-        })
-    })
-}
-
+            msg: "Login failed"
+        });
+    }
+};
 
 
 

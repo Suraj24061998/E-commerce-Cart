@@ -5,6 +5,7 @@ const userschema = new mongoose.Schema({
    createpassword: String,
    number:String,
    resetToken: String,
+   
 
 })
 module.exports = mongoose.model("newaccount", userschema)
